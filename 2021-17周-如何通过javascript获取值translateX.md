@@ -9,7 +9,31 @@ matrix(1, 0, 0, 1, -151.5, 167.5)  // 2d
 ```
 但style只能取到内联样式，所以我们还是会面临取到矩阵的情况
 
-下面就介绍怎么通过矩阵来获取transform中的各个属性
+下面就分别介绍正则匹配方法以及怎么通过矩阵来获取transform中的各个属性
+
+## 正则匹配
+
+```js
+function getTransformObj(target) {
+  const transform = traget.style.transform;  // 只能获取内联样式
+  const reg1 = /translate\((.*?), (.*?)\)/;
+  const reg2 = /rotate\((.*?)deg\)/;
+  const reg3 = /scale\(((.*?), (.*?))\)/;
+
+  // 判断translate 是否为数字 还是50%这种
+  // 判断translate\scale\rotate是否有值
+
+  const translate = transform.match(reg1);
+  const scale = transform.match(reg2);
+  const rotate = transform.match(reg3);
+  const frame = {
+    translate: [translate[2],translate[2]],
+    rotate: [rotate[1]]
+    scale: [scale[2],scale[3]]
+  };
+  return frame;
+}
+```
 
 ## 矩阵和css中transfrom的关系
 
@@ -32,6 +56,15 @@ matrix(1, 2, 3, 4, 5, 6)
 transform: translate(5,6) scale(1,4) rotate(Math.atan2(matrix.b, matrix.a) / (Math.PI / 180))
 ```
 
+注意：
+如果拥有rotate属性的话，scale就不能这么简单的获取了   
+拥有rotate属性：
+* scaleX : matrix.a / Math.cos(Math.atan2(matrix.b, matrix.a))
+* scaleY : matrix.d / Math.cos(Math.atan2(matrix.b, matrix.a))
+
+不拥有rotate属性
+* scaleX : matrix.a 
+* scaleY : matrix.d
 ## 获取矩阵对象
 
 知道了矩阵和css中transform的关系后，就简单了，我们只需要把矩阵中的a,b,c,d,e,f提取出来就可以了
@@ -46,12 +79,16 @@ https://developer.mozilla.org/en-US/docs/Web/API/DOMMatrixReadOnly
 // target代表dom元素
 function getTransformObj(target) {
   let style = getComputedStyle(target);
+
   const matrix = new DOMMatrixReadOnly(style.transform);
+  const scale1 = (matrix.a / Math.cos(Math.atan2(matrix.b, matrix.a))).toFixed(5);
+  const scale2 = (matrix.d / Math.cos(Math.atan2(matrix.b, matrix.a))).toFixed(5);
   const radian = Math.PI / 180;
+
   const frame = {
     translate: [matrix.e, matrix.f],
     rotate: Math.atan2(matrix.b, matrix.a) / radian,
-    scale: [matrix.a, matrix.d]
+    scale: [scale1, scale2]
   };
   return frame;
 }
